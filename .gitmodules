@@ -1,0 +1,6 @@
+[submodule "repochk"]
+	path = repochk
+	url = https://github.com/mitre/repochk.git
+[submodule "FindRogueElfs"]
+	path = FindRogueElfs
+	url = https://github.com/mitre/FindRogueElfs.git
