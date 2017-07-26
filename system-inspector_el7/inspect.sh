@@ -123,13 +123,13 @@ cd $HOME/results/
 if [ "$MODE" == 1 ]; then
 	cd $HOME/../repochk/
 	./getrpms.sh
-	./update_repo.sh
+	./update_repo.sh >/dev/null 2>&1
 	./repochk.py > $HOME/results/repochk/repochk-results
 	rm -f repocache.txt
 	mv rpmlist.txt $HOME/results/repochk/
 	echo "Finished Main Processes."
 elif [ "$MODE" == 2 ]; then
-	if [ -f $HOME/../repochk/rpmlist.txt ]; then
+	if [ -f $HOME/../repochk/repocache.txt ]; then
 		cd $HOME/../repochk/
 		./getrpms.sh
 		./repochk.py > $HOME/results/repochk/repochk-results
@@ -137,7 +137,7 @@ elif [ "$MODE" == 2 ]; then
 		mv rpmlist.txt $HOME/results/repochk/
 		echo "Finished Main Processes."
 	else
-		echo "RPM list file (rpmlist.txt) does not exist. Skipping repochk."
+		echo "Repo Cache file (repocache.txt) does not exist. Skipping repochk."
 	fi
 fi
 ) &
@@ -172,7 +172,7 @@ if [ -f /etc/aide.conf ] && [ -f /var/lib/aide/aide.db.gz ]; then
 	while ps aux | grep "aide --check" | grep -v grep >/dev/null 2>&1; do
 		if [ $CHK -eq 1 ]; then
 			echo "Waiting for existing AIDE CHECK to finish..."
-			$(CHK++)
+			$((CHK++))
 		fi
 	done
 	mkdir -p AIDE/

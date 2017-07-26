@@ -126,7 +126,7 @@ if [ "$MODE" == 1 ]; then
 	mv rpmlist.txt $HOME/results/repochk/
 	echo "Finished Main Processes."
 elif [ "$MODE" == 2 ]; then
-	if [ -f $HOME/../repochk/rpmlist.txt ]; then
+	if [ -f $HOME/../repochk/repocache.txt ]; then
 		cd $HOME/../repochk/
 		./getrpms.sh
 		./repochk.py > $HOME/results/repochk/repochk-results
@@ -134,7 +134,7 @@ elif [ "$MODE" == 2 ]; then
 		mv rpmlist.txt $HOME/results/repochk/
 		echo "Finished Main Processes."
 	else
-		echo "RPM list file (rpmlist.txt) does not exist. Skipping repochk."
+		echo "Repo Cache file (repocache.txt) does not exist. Skipping repochk."
 	fi
 fi
 ) &
