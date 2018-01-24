@@ -107,7 +107,27 @@ seinfo -r >> selinux-info
 cd $HOME/results/
 
 ########## BEGIN MISC CHECKS ##########
-sysctl kernel.randomize_va_space > kernel-info
+echo "Running Kernel: $(uname -mrs)" > kernel-info.txt
+echo "Blacklisted/Disabled Kernel Modules:" >> kernel-info.txt
+echo "---------------------------------------------------" >> kernel-info.txt
+grep -E 'blacklist|/bin/true|/bin/false' /etc/modprobe.d/* >> kernel-info.txt
+echo >> kernel-info.txt
+echo "---------------------------------------------------" >> kernel-info.txt
+echo "Kernel Modules:" >> kernel-info.txt
+echo "---------------------------------------------------" >> kernel-info.txt
+lsmod >> kernel-info.txt
+echo >> kernel-info.txt
+echo "---------------------------------------------------" >> kernel-info.txt
+echo "Kernel Module Configuration (Detailed):" >> kernel-info.txt
+echo "---------------------------------------------------" >> kernel-info.txt
+modprobe -c >> kernel-info.txt
+echo >> kernel-info.txt
+echo "---------------------------------------------------" >> kernel-info.txt
+echo "Kernel Options:" >> kernel-info.txt
+echo "---------------------------------------------------" >> kernel-info.txt
+sysctl -a  >> kernel-info.txt
+echo >> kernel-info.txt
+echo "---------------------------------------------------" >> kernel-info.txt
 mapfile -t ARRAY < <(find / -name "*sshd_config*" >/dev/null 2>&1)
 LENGTH=${#ARRAY[@]}
 for ((i=0; i<LENGTH; i++)); do
@@ -122,6 +142,7 @@ cd $HOME/results/
 ######### BEGIN REPOCHK ##########
 if [ "$MODE" == 1 ]; then
 	cd $HOME/../repochk/
+	yum -v repolist > repository-info.txt
 	./getrpms.sh
 	./update_repo.sh >/dev/null 2>&1
 	./repochk.py > $HOME/results/repochk/repochk-results
