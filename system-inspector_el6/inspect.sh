@@ -104,7 +104,9 @@ echo '############### SELINUX USERS ###############' >> selinux-info.txt
 cd $HOME/results/
 
 ########## BEGIN MISC CHECKS ##########
+
 echo "Running Kernel: $(uname -mrs)" > kernel-info.txt
+echo "Kernel FIPS Mode: $(cat /proc/sys/crypto/fips_enabled)" >> kernel-info.txt
 echo "Blacklisted/Disabled Kernel Modules:" >> kernel-info.txt
 echo "---------------------------------------------------" >> kernel-info.txt
 grep -E 'blacklist|/bin/true|/bin/false' /etc/modprobe.d/* >> kernel-info.txt
@@ -125,6 +127,25 @@ echo "---------------------------------------------------" >> kernel-info.txt
 sysctl -a  >> kernel-info.txt
 echo >> kernel-info.txt
 echo "---------------------------------------------------" >> kernel-info.txt
+
+echo "Hardware Information" > hardware-info.txt
+echo >> hardware-info.txt
+echo "CPU Information:" >> hardware-info.txt
+echo "---------------------------------------------------" >> hardware-info.txt
+cat /proc/cpuinfo >> hardware-info.txt
+echo >> hardware-info.txt
+echo "---------------------------------------------------" >> hardware-info.txt
+echo "PCI Information:" >> hardware-info.txt
+echo "---------------------------------------------------" >> hardware-info.txt
+lspci -v >> hardware-info.txt
+echo >> hardware-info.txt
+echo "---------------------------------------------------" >> hardware-info.txt
+echo "USB Information:" >> hardware-info.txt
+echo "---------------------------------------------------" >> hardware-info.txt
+lsusb -v >> hardware-info.txt
+echo >> hardware-info.txt
+echo "---------------------------------------------------" >> hardware-info.txt
+
 mapfile -t ARRAY < <(find / -name "*sshd_config*" >/dev/null 2>&1)
 LENGTH=${#ARRAY[@]}
 for ((i=0; i<LENGTH; i++)); do
