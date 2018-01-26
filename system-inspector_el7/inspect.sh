@@ -96,7 +96,7 @@ cat /etc/sysctl.conf > etc-sysctl.conf
 cat /etc/sysconfig/network > etc-sysconfig-network
 if [ -x /usr/sbin/iptables ]; then
 	iptables -L -n -v > iptables-output.txt
-	cat /etc/sysconfig/iptables-confi > etc-sysconfig-iptables
+	cat /etc/sysconfig/iptables-config > etc-sysconfig-iptables
 fi
 if [ -x /usr/sbin/ip6tables ]; then
 	ip6tables -L -n -v > ip6tables-output.txt
@@ -109,7 +109,6 @@ if [ -x /usr/bin/netstat ]; then
 	netstat -a > netstat-a.txt
 	netstat -lnZ > netstat-lnZ.txt
 fi
-cd $HOME/results/
 
 ########## BEGIN USER CHECKS ##########
 cd users/
