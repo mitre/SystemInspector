@@ -52,7 +52,7 @@ elif [ $GETENFORCE = "Disabled" ]; then
 	exit 1
 fi
 if [ -a "/etc/redhat-release" ]; then
-	VERSION="$(grep -oP "(?<=release )[^ ]+" /etc/redhat-release)"
+	VERSION="$(grep -oP "(?<=release )[^ ]+" /etc/redhat-release | cut -d . -f 1,2)"
 	if [[ ! $VERSION = "7."[0-9] ]]; then
 		echo "This script will not work with $(cat /etc/redhat-release)" | sed 's/release //g' | sed 's/ (Maipo)//g'
 		exit 1
