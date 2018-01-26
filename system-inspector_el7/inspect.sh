@@ -109,6 +109,7 @@ if [ -x /usr/bin/netstat ]; then
 	netstat -a > netstat-a.txt
 	netstat -lnZ > netstat-lnZ.txt
 fi
+cd $HOME/results/
 
 ########## BEGIN USER CHECKS ##########
 cd users/
