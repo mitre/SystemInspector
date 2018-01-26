@@ -97,11 +97,11 @@ cat /etc/sysctl.conf > etc-sysctl.conf
 cat /etc/sysconfig/network > etc-sysconfig-network
 if [ -x /usr/sbin/iptables ]; then
 	iptables -L -n -v > iptables-output.txt
-	cat /etc/sysconfig/iptables > etc-sysconfig-iptables
+	cat /etc/sysconfig/iptables-config > etc-sysconfig-iptables
 fi
 if [ -x /usr/sbin/ip6tables ]; then
 	ip6tables -L -n -v > ip6tables-output.txt
-	cat /etc/sysconfig/ip6tables > etc-sysconfig-ip6tables
+	cat /etc/sysconfig/ip6tables-config > etc-sysconfig-ip6tables
 fi
 if [ -x /usr/bin/netstat ]; then
 	netstat -a > netstat-a.txt
