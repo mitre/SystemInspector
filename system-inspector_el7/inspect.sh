@@ -1,5 +1,30 @@
 #!/bin/bash
-#Created by Zachary LeBlanc
+###############################################################################
+# System Inspector
+#
+# This script was written by Zach LeBlanc
+# Last update was 25 January 2018
+#
+# Author: Zach LeBlanc (zleblanc@mitre.org)
+# Contributor: Drew Bonasera (dbonasera@mitre.org)
+# Contributor: Frank Caviggia (fcaviggia@mitre.org)
+# Copyright: The MITRE Corporation, 2018
+# License: MIT
+# Description: Evaluates the security settings of a Linux (RHEL/CentOS)
+#              System.
+###############################################################################
+###############################################################################
+# (C) 2018 The MITRE Corporation. All Rights Reserved. This software is provided 
+# as-is and MITRE disclaims all liability and all guarantees and warranties, 
+# express or implied, including warranties of merchantability, non-infringement, 
+# and fitness for a particular purpose. For open source code incorporated, such 
+# open source software is distributed on an as-is basis under the respective 
+# license terms thereof. MITRE disclaims any liability in relation to this 
+# open source software. This notice shall be marked on any reproduction of 
+# these data, in whole or in part. For further information, please contact 
+# The MITRE Corporation, Contracts Office, 
+# 7515 Colshire Drive, McLean, VA 22102-7539, (703) 983-6000.
+###############################################################################
 HOME=$(pwd)
 trap ctrl_c INT
 ctrl_c() {
@@ -60,21 +85,30 @@ systemctl list-unit-files > systemctl-unit-files
 
 ########## BEGIN NETWORK CHECKS ##########
 cd network/
-ifconfig > ifconfig
+if [ -x /usr/sbin/ifconfig ]; then
+	ifconfig > network_information.txt
+elif [ -x /usr/sbin/ip ]; then
+	ip addr > network_information.txt
+fi
 cat /etc/hosts > etc-hosts
 cat /etc/resolv.conf > etc-resolv.conf
 cat /etc/sysctl.conf > etc-sysctl.conf
 cat /etc/sysconfig/network > etc-sysconfig-network
-iptables -L -n -v > iptables-output
-if [ -f /etc/sysconfig/iptables ]; then
+if [ -x /usr/sbin/iptables ]; then
+	iptables -L -n -v > iptables-output.txt
 	cat /etc/sysconfig/iptables > etc-sysconfig-iptables
-else
-	echo "No IPTABLES file was found. The system may be using FIREWALLD instead. Please check with system administrator." > etc-sysconfig-iptables
 fi
-netstat -a > netstat-a
-netstat -lnZ > netstat-lnZ
-ps auxZ > psauxZ
-cd $HOME/results/
+if [ -x /usr/sbin/ip6tables ]; then
+	ip6tables -L -n -v > ip6tables-output.txt
+	cat /etc/sysconfig/ip6tables > etc-sysconfig-ip6tables
+fi
+if [ -x /usr/bin/firewall-cmd ]; then
+	firewall-cmd --list-all-zones
+fi
+if [ -x /usr/bin/netstat ]; then
+	netstat -a > netstat-a.txt
+	netstat -lnZ > netstat-lnZ.txt
+fi
 
 ########## BEGIN USER CHECKS ##########
 cd users/
@@ -98,12 +132,16 @@ cd selinux/
 echo '############### sestatus ###############' > selinux-info
 sestatus >> selinux-info
 echo >> selinux-info
-echo '############### semanage login -l (SELinux Login/Users Map) ###############' >> selinux-info
-semanage login -l >> selinux-info
-echo '############### semanage user -l (SELinux Users) ###############' >> selinux-info
-semanage user -l >> selinux-info
-echo '############### seinfo -r (SELinux Roles) ###############' >> selinux-info
-seinfo -r >> selinux-info
+if [ -x /usr/sbin/semanage ]; then
+	echo '############### semanage login -l (SELinux Login/Users Map) ###############' >> selinux-info
+	semanage login -l >> selinux-info
+	echo '############### semanage user -l (SELinux Users) ###############' >> selinux-info
+	semanage user -l >> selinux-info
+fi
+if [ -x /usr/bin/seinfo ]; then
+	echo '############### seinfo -r (SELinux Roles) ###############' >> selinux-info
+	seinfo -r >> selinux-info
+fi
 cd $HOME/results/
 
 ########## BEGIN MISC CHECKS ##########
@@ -117,17 +155,17 @@ echo >> kernel-info.txt
 echo "---------------------------------------------------" >> kernel-info.txt
 echo "Kernel Modules:" >> kernel-info.txt
 echo "---------------------------------------------------" >> kernel-info.txt
-lsmod >> kernel-info.txt
+lsmod &>> kernel-info.txt
 echo >> kernel-info.txt
 echo "---------------------------------------------------" >> kernel-info.txt
 echo "Kernel Module Configuration (Detailed):" >> kernel-info.txt
 echo "---------------------------------------------------" >> kernel-info.txt
-modprobe -c >> kernel-info.txt
+modprobe -c &>> kernel-info.txt
 echo >> kernel-info.txt
 echo "---------------------------------------------------" >> kernel-info.txt
 echo "Kernel Options:" >> kernel-info.txt
 echo "---------------------------------------------------" >> kernel-info.txt
-sysctl -a  >> kernel-info.txt
+sysctl -a &>> kernel-info.txt
 echo >> kernel-info.txt
 echo "---------------------------------------------------" >> kernel-info.txt
 
@@ -138,17 +176,25 @@ echo "---------------------------------------------------" >> hardware-info.txt
 cat /proc/cpuinfo >> hardware-info.txt
 echo >> hardware-info.txt
 echo "---------------------------------------------------" >> hardware-info.txt
+echo "Storage Information:" >> hardware-info.txt
+echo "---------------------------------------------------" >> hardware-info.txt
+lsblk >> hardware-info.txt
+echo >> hardware-info.txt
+echo "---------------------------------------------------" >> hardware-info.txt
+if [ -x /sbin/lspci ]; then
 echo "PCI Information:" >> hardware-info.txt
 echo "---------------------------------------------------" >> hardware-info.txt
 lspci -v >> hardware-info.txt
 echo >> hardware-info.txt
 echo "---------------------------------------------------" >> hardware-info.txt
+fi
+if [ -x /sbin/lsusb ]; then
 echo "USB Information:" >> hardware-info.txt
 echo "---------------------------------------------------" >> hardware-info.txt
 lsusb -v >> hardware-info.txt
 echo >> hardware-info.txt
 echo "---------------------------------------------------" >> hardware-info.txt
-
+fi
 mapfile -t ARRAY < <(find / -name "*sshd_config*" >/dev/null 2>&1)
 LENGTH=${#ARRAY[@]}
 for ((i=0; i<LENGTH; i++)); do
@@ -161,9 +207,9 @@ done
 cd $HOME/results/
 
 ######### BEGIN REPOCHK ##########
+yum -v repolist &> repository-info.txt
 if [ "$MODE" == 1 ]; then
 	cd $HOME/../repochk/
-	yum -v repolist > repository-info.txt
 	./getrpms.sh
 	./update_repo.sh >/dev/null 2>&1
 	./repochk.py > $HOME/results/repochk/repochk-results
