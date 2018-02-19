@@ -1,4 +1,4 @@
-## System Inspector for Enterprise Linux ##
+## SystemInspector for Enterprise Linux ##
 
 System Inspector for Enterprise Linux is designed to pull some of the most of the security-relevant files and 
 information from a Linux system; current versions supported are Red Hat Enterprise Linux 6 and 7 and 
