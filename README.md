@@ -14,7 +14,7 @@ the `system-inspector-el[x]` folder. Note that there will probably be a `unix-pr
 1. Run as root
 2. Set SELinux to Permissive
 3. OpenSCAP installation (openscap-scanner and scap-security-guide)
-4. python2.x (if running repochk)
+4. python >= 2.x (if running repochk)
 
 ## How to Operate ##
 If the system is able to connect to the Internet, the user needs to run the following to clone the repo correctly, which will clone SystemInspector, repochk, and FindRogueElfs: `git clone --recursive https://github.com/mitre/SystemInspector.git`
