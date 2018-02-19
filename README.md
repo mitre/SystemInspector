@@ -14,12 +14,12 @@ the `system-inspector-el[x]` folder. Note that there will probably be a `unix-pr
 1. Run as root
 2. Set SELinux to Permissive
 3. OpenSCAP installation (openscap-scanner and scap-security-guide)
-4. python2.x (if running RepoChk)
+4. python2.x (if running repochk)
 
 ## How to Operate ##
 If the system is able to connect to the Internet, the user needs to run the following to clone the repo correctly, which will clone SystemInspector, repochk, and FindRogueElfs: `git clone --recursive https://github.com/mitre/SystemInspector.git`
 
-If the system is not able to connect to the Internet, the user needs to download the .zip file from GitHub, extract the contents, and manually bring the files to the system (i.e. via CD/DVD, USB, etc.). If the user plans to run RepoChk, the `update_repo.sh` script needs to be run on a system with Internet access. The output of that script should then be placed in the `repochk` directory on the system to be inspected. If the system does not have Python >= 2.x, RepoChk will not work. 
+If the system is not able to connect to the Internet, the user needs to download the .zip file from GitHub, extract the contents, and manually bring the files to the system (i.e. via CD/DVD, USB, etc.). If the user plans to run repochk, the `update_repo.sh` script needs to be run on a system with Internet access. The output of that script should then be placed in the `repochk` directory on the system to be inspected. If the system does not have Python >= 2.x, repochk will not work. 
 
 In the root directory of system-inspector-el[x], run the `inspect.sh` shell script. The user will be prompted to run the tool in either offline or online mode.
 
