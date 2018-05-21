@@ -209,7 +209,7 @@ cd $HOME/results/
 
 ########## BEGIN REPOCHK ##########
 yum -v repolist &> repository-info.txt
-if [ "$MODE" == 1 ]; then
+if [ $MODE -eq 1 ]; then
 	cd $HOME/../repochk/
 	./getrpms.sh
 	./update_repo.sh
@@ -217,7 +217,7 @@ if [ "$MODE" == 1 ]; then
 	rm -f repocache.txt
 	mv rpmlist.txt $HOME/results/repochk/
 	echo "Finished Main Processes."
-elif [ "$MODE" == 2 ]; then
+elif [ $MODE -eq 2 ]; then
 	if [ -f $HOME/../repochk/repocache.txt ]; then
 		cd $HOME/../repochk/
 		./getrpms.sh
@@ -236,7 +236,23 @@ fi
 echo "Starting OpenSCAP Process."
 cd scap/oscap/
 oscap >/dev/null 2>&1 oval eval --results oscap-results.xml /usr/share/xml/scap/ssg/content/ssg-rhel6-ds.xml
-oscap >/dev/null 2>&1 oval generate report oscap-results.xml > oscap-results.html
+oscap >/dev/null 2>&1 oval generate report oscap-results.xml > $(hostname)-scap-scan-report-$(date +%Y%m%d).html
+
+if [ $MODE -eq 1 ]; then
+    wget http://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml
+    if [ $? -gt 1 ]; then
+        echo "Error Downloading Red Hat Security Advisory (RHSA) data from Red Hat!"
+    fi
+    wget http://www.redhat.com/security/data/metrics/com.redhat.rhsa-all.xccdf.xml
+    if [ $? -gt 1 ]; then
+        echo "Error Downloading XCCDF data from Red Hat!"
+    fi
+fi
+if [[ -e com.redhat.rhsa-all.xml && -e com.redhat.rhsa-all.xccdf.xml ]]; then
+        oscap xccdf eval --results $(hostname)-scap-vulnerability-report-$(date +%Y%m%d).xml --report $(hostname)-scap-vulnerability-report-$(date +%Y%m%d).html com.redhat.rhsa-all.xccdf.xml >/dev/null 2>&1
+else
+        echo "Red Hat Vulnerability Content Missing - please run in Online mode!"
+fi
 echo "Finished OpenSCAP Process."
 ) &
 
