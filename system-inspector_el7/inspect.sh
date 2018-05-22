@@ -346,8 +346,9 @@ cat << EOF
 *********************************************
 EOF
 } 
-tar -zcf results.tar.gz $WORK_DIR/results
-rm -rf $WORK_DIR/results
+cd $WORK_DIR
 echo "Everything is done."
+tar -zcf results.tar.gz ./results
+rm -rf results
 echo
 warning
