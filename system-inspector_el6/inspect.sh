@@ -37,12 +37,14 @@ function realpath() {
 }
 # Determine Execution Directory
 BASE_DIR=$(dirname $(realpath $0))
+# Working Directory for results
+WORK_DIR=$(pwd)
 
 trap ctrl_c INT
 ctrl_c() {
 	echo "** Trapped CTRL-C **"
-	cd $BASE_DIR
-	rm -rf results/
+	cd $WORK_DIR
+	rm -rf results
 	rm -f results.tar.gz
 	killall -9 inspect.sh
 	exit 1
@@ -79,25 +81,19 @@ echo "[2] Offline"
 echo
 echo -n "Selection: "
 read MODE
-if [ ! -d results/ ]; then
-	mkdir results/
+if [ ! -d $WORK_DIR/results ]; then
+	mkdir $WORK_DIR/results
 fi
-cd results/
-mkdir elfs/
-mkdir scap/
-mkdir scap/oscap/
-mkdir network/
-mkdir users/
-mkdir selinux/
-mkdir privesc/
-mkdir repochk/
+cd $WORK_DIR/results
+mkdir {elfs,scap,network,users,selinux,pirvsec,repochk}
+mkdir scap/oscap
 (
 echo "Starting Main Processes."
 ########## BEGIN CHKCONFIG ##########
 chkconfig --list > chkconfig-list.txt
 
 ########## BEGIN NETWORK CHECKS ##########
-cd network/
+cd network
 if [ -x /usr/sbin/ifconfig ]; then
 	ifconfig > network_information.txt
 elif [ -x /usr/sbin/ip ]; then
@@ -120,13 +116,14 @@ if [ -x /usr/bin/netstat ]; then
 	netstat -lnZ > netstat-lnZ.txt
 fi
 ps auxZ | grep sshd > psauxZ-sshd.txt 
-cd $BASE_DIR/results/
+cd $WORK_DIR/results
 
 ########## BEGIN USER CHECKS ##########
-cd users/
-cp /etc/passwd ./etc-passwd
-cp /etc/shadow ./etc-shadow
-cp /etc/group ./etc-group
+cd users
+cat /etc/passwd > etc-passwd
+cat /etc/shadow > etc-shadow
+cat /etc/group > etc-group
+cat /ets/shells > etc-shells
 BIN=($(cat /etc/passwd | awk -F: '{print $NF}'))
 USR=($(cat /etc/passwd | awk -F: '{print $1}'))
 SIZE=${#BIN[@]}
@@ -137,7 +134,7 @@ for (( c=0; c<SIZE; c++)); do
 		groups "${USR[$c]}" >> users-groups.txt
 	fi
 done
-cd $BASE_DIR/results/
+cd $WORK_DIR/results
 
 ########## BEGIN SELINUX CHECKS ##########
 cd selinux/
@@ -154,7 +151,7 @@ if [ -x /usr/bin/seinfo ]; then
 	echo '############### seinfo -r (SELinux Roles) ###############' >> selinux-info
 	seinfo -r >> selinux-info
 fi
-cd $BASE_DIR/results/
+cd $WORK_DIR/results
 
 ########## BEGIN MISC CHECKS ##########
 
@@ -217,25 +214,23 @@ for ((i=0; i<LENGTH; i++)); do
                 fi
         fi
 done
-cd $BASE_DIR/results/
+cd $WORK_DIR/results
 
-########## BEGIN REPOCHK ##########
+######### BEGIN REPOCHK ##########
 yum -v repolist &> repository-info.txt
 if [ $MODE -eq 1 ]; then
-	cd $BASE_DIR/../repochk/
-	./getrpms.sh
-	./update_repo.sh
-	./repochk.py > $BASE_DIR/results/repochk/repochk-results
-	rm -f repocache.txt
-	mv rpmlist.txt $BASE_DIR/results/repochk/
+	$BASE_DIR/../repochk/getrpms.sh
+	$BASE_DIR/../repochk/update_repo.sh >/dev/null 2>&1
+	$BASE_DIR/../repochk/repochk.py > $WORK_DIR/results/repochk/repochk-results
+	mv rpmlist.txt $WORK_DIR/results/repochk/
 	echo "Finished Main Processes."
 elif [ $MODE -eq 2 ]; then
 	if [ -f $BASE_DIR/../repochk/repocache.txt ]; then
-		cd $BASE_DIR/../repochk/
-		./getrpms.sh
-		./repochk.py > $BASE_DIR/results/repochk/repochk-results
+		$BASE_DIR/../repochk/getrpms.sh
+		cp $BASE_DIR/../repochk/repocache.txt .
+		$BASE_DIR/../repochk/repochk.py > $WORK_DIR/results/repochk/repochk-results
 		rm -f repocache.txt
-		mv rpmlist.txt $BASE_DIR/results/repochk/
+		mv rpmlist.txt $WORK_DIR/results/repochk/
 		echo "Finished Main Processes."
 	else
 		echo "Repo Cache file (repocache.txt) does not exist. Skipping repochk."
@@ -246,7 +241,7 @@ fi
 (
 ########## BEGIN OSCAP CHECK ##########
 echo "Starting OpenSCAP Process."
-cd scap/oscap/
+cd scap/oscap
 oscap >/dev/null 2>&1 oval eval --results oscap-results.xml /usr/share/xml/scap/ssg/content/ssg-rhel6-ds.xml
 oscap >/dev/null 2>&1 oval generate report oscap-results.xml > $(hostname)-scap-scan-report-$(date +%Y%m%d).html
 
@@ -272,9 +267,9 @@ echo "Finished OpenSCAP Process."
 ########## BEGIN PRIVESC CHECK ##########
 if [ -d $BASE_DIR/../unix-privesc-check-1_x ]; then
 	echo "Starting Privilege Checks."
-	cd $BASE_DIR/../unix-privesc-check-1_x/
+	cd $BASE_DIR/../unix-privesc-check-1_x
 	chmod 755 unix-privesc-check
-	./unix-privesc-check detailed > $BASE_DIR/results/privesc/privesc-check
+	./unix-privesc-check detailed > $WORK_DIR/results/privesc/privesc-check
 	echo "Finished Privilege Checks."
 else
 	echo "PRIVESC Check does not exist."
@@ -292,12 +287,12 @@ if [ -f /etc/aide.conf ] && [ -f /var/lib/aide/aide.db.gz ]; then
 			$((CHK++))
 		fi
 	done
-	mkdir -p AIDE/
-	cd AIDE/
+	mkdir -p AIDE
+	cd AIDE
 	echo 'Performing AIDE Check.'
 	cat /etc/aide.conf > etc-aide.conf
 	aide --check > aide-check
-	cd $BASE_DIR/results/
+	cd $WORK_DIR/results
 else
 	echo 'AIDE is not installed or configured!' > aide-check
 fi
@@ -306,7 +301,7 @@ echo "Finished AIDE Process."
 
 (
 ########## BEGIN FIND ROGUE ELFS ##########
-cd elfs/
+cd elfs
 echo "Starting Rogue Elfs Process."
 $BASE_DIR/../FindRogueElfs/FindRogueElfs.sh >/dev/null 2>&1
 
@@ -314,7 +309,7 @@ echo "Finished Rogue Elfs Process."
 ) &
 
 wait
-cd $BASE_DIR
+cd $WORK_DIR
 warning() {
 cat << EOF 
 *********************************************
@@ -330,8 +325,8 @@ cat << EOF
 EOF
 } 
 echo "Everything is done."
-tar -zcf results.tar.gz results/
-rm -rf results/
+tar -zcf results.tar.gz $WORK_DIR/results/
+rm -rf $WORK_DIR/results
 echo
 warning
 echo
