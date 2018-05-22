@@ -318,14 +318,15 @@ echo "Finished AIDE Process."
 
 (
 ########## BEGIN FIND ROGUE ELFS ##########
-cd $WORK_DIR/results/elfs
+cd  $WORK_DIR
 echo "Starting Rogue ELFs Process."
-$BASE_DIR/../FindRogueElfs/FindRogueElfs.sh &
+$BASE_DIR/../FindRogueElfs/FindRogueElfs.sh &> $WORK_DIR/results/elfs/report.txt &
 ELFS_PID=$!
 while kill -0 $ELFS_PID >/dev/null 2>&1; do
-	echo "Find Rogue ELFs process is still active..."
+        echo "Find Rogue ELFs process is still active..."
         sleep 15
 done
+rm -f *.txt
 echo "Finished Rogue ELFs Process."
 ) &
 
