@@ -77,10 +77,10 @@ echo "[2] Offline"
 echo
 echo -n "Selection: "
 read MODE
-if [ ! -d results/ ]; then
+if [ ! -d cd $BASE_DIR/results/ ]; then
 	mkdir $BASE_DIR/results/
 fi
-cd results/
+cd $BASE_DIR/results/
 mkdir elfs/
 mkdir scap/
 mkdir scap/oscap/
