@@ -318,7 +318,7 @@ echo "Finished AIDE Process."
 
 (
 ########## BEGIN FIND ROGUE ELFS ##########
-cd elfs
+cd $WORK_DIR/results/elfs
 echo "Starting Rogue ELFs Process."
 $BASE_DIR/../FindRogueElfs/FindRogueElfs.sh &> $WORK_DIR/elfs/report.txt &
 ELFS_PID=$!
