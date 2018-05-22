@@ -3,7 +3,7 @@
 # System Inspector
 #
 # This script was written by Zach LeBlanc
-# Last update was 25 January 2018
+# Last update was 22 May 2018
 #
 # Author: Zach LeBlanc (zleblanc@mitre.org)
 # Contributor: Drew Bonasera (dbonasera@mitre.org)
