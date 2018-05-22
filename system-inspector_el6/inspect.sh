@@ -3,7 +3,7 @@
 # System Inspector
 #
 # This script was written by Zach LeBlanc
-# Last update was 25 January 2018
+# Last update was 22 May 2018
 #
 # Author: Zach LeBlanc (zleblanc@mitre.org)
 # Contributor: Drew Bonasera (dbonasera@mitre.org)
@@ -25,11 +25,23 @@
 # The MITRE Corporation, Contracts Office, 
 # 7515 Colshire Drive, McLean, VA 22102-7539, (703) 983-6000.
 ###############################################################################
-HOME=$(pwd)
+
+# Determine the Path
+function realpath() {
+    local r=$1; local t=$(readlink $r)
+    while [ $t ]; do
+        r=$(cd $(dirname $r) && cd $(dirname $t) && pwd -P)/$(basename $t)
+        t=$(readlink $r)
+    done
+    echo $r
+}
+# Determine Execution Directory
+BASE_DIR=$(dirname $(realpath $0))
+
 trap ctrl_c INT
 ctrl_c() {
 	echo "** Trapped CTRL-C **"
-	cd $HOME
+	cd $BASE_DIR
 	rm -rf results/
 	rm -f results.tar.gz
 	killall -9 inspect.sh
@@ -108,7 +120,7 @@ if [ -x /usr/bin/netstat ]; then
 	netstat -lnZ > netstat-lnZ.txt
 fi
 ps auxZ | grep sshd > psauxZ-sshd.txt 
-cd $HOME/results/
+cd $BASE_DIR/results/
 
 ########## BEGIN USER CHECKS ##########
 cd users/
@@ -125,7 +137,7 @@ for (( c=0; c<SIZE; c++)); do
 		groups "${USR[$c]}" >> users-groups.txt
 	fi
 done
-cd $HOME/results/
+cd $BASE_DIR/results/
 
 ########## BEGIN SELINUX CHECKS ##########
 cd selinux/
@@ -142,7 +154,7 @@ if [ -x /usr/bin/seinfo ]; then
 	echo '############### seinfo -r (SELinux Roles) ###############' >> selinux-info
 	seinfo -r >> selinux-info
 fi
-cd $HOME/results/
+cd $BASE_DIR/results/
 
 ########## BEGIN MISC CHECKS ##########
 
@@ -205,25 +217,25 @@ for ((i=0; i<LENGTH; i++)); do
                 fi
         fi
 done
-cd $HOME/results/
+cd $BASE_DIR/results/
 
 ########## BEGIN REPOCHK ##########
 yum -v repolist &> repository-info.txt
 if [ $MODE -eq 1 ]; then
-	cd $HOME/../repochk/
+	cd $BASE_DIR/../repochk/
 	./getrpms.sh
 	./update_repo.sh
-	./repochk.py > $HOME/results/repochk/repochk-results
+	./repochk.py > $BASE_DIR/results/repochk/repochk-results
 	rm -f repocache.txt
-	mv rpmlist.txt $HOME/results/repochk/
+	mv rpmlist.txt $BASE_DIR/results/repochk/
 	echo "Finished Main Processes."
 elif [ $MODE -eq 2 ]; then
-	if [ -f $HOME/../repochk/repocache.txt ]; then
-		cd $HOME/../repochk/
+	if [ -f $BASE_DIR/../repochk/repocache.txt ]; then
+		cd $BASE_DIR/../repochk/
 		./getrpms.sh
-		./repochk.py > $HOME/results/repochk/repochk-results
+		./repochk.py > $BASE_DIR/results/repochk/repochk-results
 		rm -f repocache.txt
-		mv rpmlist.txt $HOME/results/repochk/
+		mv rpmlist.txt $BASE_DIR/results/repochk/
 		echo "Finished Main Processes."
 	else
 		echo "Repo Cache file (repocache.txt) does not exist. Skipping repochk."
@@ -258,11 +270,11 @@ echo "Finished OpenSCAP Process."
 
 (
 ########## BEGIN PRIVESC CHECK ##########
-if [ -d $HOME/../unix-privesc-check-1_x ]; then
+if [ -d $BASE_DIR/../unix-privesc-check-1_x ]; then
 	echo "Starting Privilege Checks."
-	cd $HOME/../unix-privesc-check-1_x/
+	cd $BASE_DIR/../unix-privesc-check-1_x/
 	chmod 755 unix-privesc-check
-	./unix-privesc-check detailed > $HOME/results/privesc/privesc-check
+	./unix-privesc-check detailed > $BASE_DIR/results/privesc/privesc-check
 	echo "Finished Privilege Checks."
 else
 	echo "PRIVESC Check does not exist."
@@ -285,7 +297,7 @@ if [ -f /etc/aide.conf ] && [ -f /var/lib/aide/aide.db.gz ]; then
 	echo 'Performing AIDE Check.'
 	cat /etc/aide.conf > etc-aide.conf
 	aide --check > aide-check
-	cd $HOME/results/
+	cd $BASE_DIR/results/
 else
 	echo 'AIDE is not installed or configured!' > aide-check
 fi
@@ -296,13 +308,13 @@ echo "Finished AIDE Process."
 ########## BEGIN FIND ROGUE ELFS ##########
 cd elfs/
 echo "Starting Rogue Elfs Process."
-$HOME/../FindRogueElfs/FindRogueElfs.sh >/dev/null 2>&1
+$BASE_DIR/../FindRogueElfs/FindRogueElfs.sh >/dev/null 2>&1
 
 echo "Finished Rogue Elfs Process."
 ) &
 
 wait
-cd $HOME
+cd $BASE_DIR
 warning() {
 cat << EOF 
 *********************************************
