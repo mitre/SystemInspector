@@ -123,7 +123,7 @@ cd users
 cat /etc/passwd > etc-passwd
 cat /etc/shadow > etc-shadow
 cat /etc/group > etc-group
-cat /ets/shells > etc-shells
+cat /etc/shells > etc-shells
 BIN=($(cat /etc/passwd | awk -F: '{print $NF}'))
 USR=($(cat /etc/passwd | awk -F: '{print $1}'))
 SIZE=${#BIN[@]}
