@@ -251,11 +251,11 @@ oscap >/dev/null 2>&1 oval eval --results oscap-results.xml /usr/share/xml/scap/
 oscap >/dev/null 2>&1 oval generate report oscap-results.xml > $(hostname)-scap-scan-report-$(date +%Y%m%d).html
 
 if [ $MODE -eq 1 ]; then
-    wget http://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml
+    wget http://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml >/dev/null 2>&1
     if [ $? -gt 1 ]; then
         echo "Error Downloading Red Hat Security Advisory (RHSA) data from Red Hat!"
     fi
-    wget http://www.redhat.com/security/data/metrics/com.redhat.rhsa-all.xccdf.xml
+    wget http://www.redhat.com/security/data/metrics/com.redhat.rhsa-all.xccdf.xml >/dev/null 2>&1
     if [ $? -gt 1 ]; then
         echo "Error Downloading XCCDF data from Red Hat!"
     fi
