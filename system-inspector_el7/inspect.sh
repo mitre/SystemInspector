@@ -86,7 +86,6 @@ fi
 mkdir -p $WORK_DIR/results
 cd $WORK_DIR/results
 mkdir {elfs,scap,network,users,selinux,pirvsec,repochk}
-mkdir scap/oscap
 (
 echo "Starting Main Processes."
 
@@ -220,31 +219,45 @@ cd $WORK_DIR/results
 
 ######### BEGIN REPOCHK ##########
 yum -v repolist &> repository-info.txt
+cd $WORK_DIR
 if [ $MODE -eq 1 ]; then
-	$BASE_DIR/../repochk/getrpms.sh
-	$BASE_DIR/../repochk/update_repo.sh >/dev/null 2>&1
-	$BASE_DIR/../repochk/repochk.py > $WORK_DIR/results/repochk/repochk-results
-	mv rpmlist.txt $WORK_DIR/results/repochk/
-	echo "Finished Main Processes."
+        $BASE_DIR/../repochk/getrpms.sh
+        $BASE_DIR/../repochk/update_repo.sh >/dev/null 2>&1
+        $BASE_DIR/../repochk/repochk.py > $WORK_DIR/results/repochk/repochk-results
+        mv rpmlist.txt $WORK_DIR/results/repochk/
+        rm -f repocache.txt
+        echo "Finished Main Processes."
 elif [ $MODE -eq 2 ]; then
-	if [ -f $BASE_DIR/../repochk/repocache.txt ]; then
-		$BASE_DIR/../repochk/getrpms.sh
-		cp $BASE_DIR/../repochk/repocache.txt .
-		$BASE_DIR/../repochk/repochk.py > $WORK_DIR/results/repochk/repochk-results
-		mv rpmlist.txt $WORK_DIR/results/repochk/
-		echo "Finished Main Processes."
-	else
-		echo "Repo Cache file (repocache.txt) does not exist. Skipping repochk."
-	fi
+        if [ -f $BASE_DIR/../repochk/repocache.txt ]; then
+                $BASE_DIR/../repochk/getrpms.sh
+                cp $BASE_DIR/../repochk/repocache.txt .
+                $BASE_DIR/../repochk/repochk.py > $WORK_DIR/results/repochk/repochk-results
+                mv rpmlist.txt $WORK_DIR/results/repochk/
+                rm -f repocache.txt
+                echo "Finished Main Processes."
+        else
+                echo "Repo Cache file (repocache.txt) does not exist. Skipping repochk."
+        fi
 fi
+cd $WORK_DIR/results
 ) &
 
 (
 ########## BEGIN OSCAP CHECK ##########
 echo "Starting OpenSCAP Process."
-cd scap/oscap
-oscap >/dev/null 2>&1 oval eval --results oscap-results.xml /usr/share/xml/scap/ssg/content/ssg-rhel7-ds.xml
-oscap >/dev/null 2>&1 oval generate report oscap-results.xml > $(hostname)-scap-scan-report-$(date +%Y%m%d).html
+cd $WORK_DIR/results/scap
+oscap >/dev/null 2>&1 oval eval --results oscap-results.xml /usr/share/xml/scap/ssg/content/ssg-rhel7-ds.xml &
+SCAP_SCAN_PID=$!
+while kill -0 $SCAP_SCAN_PID >/dev/null 2>&1; do
+        echo "OpenSCAP configuration scan process is still active..."
+        sleep 15
+done
+oscap >/dev/null 2>&1 oval generate report oscap-results.xml > $(hostname)-scap-scan-report-$(date +%Y%m%d).html &
+SCAP_RESULTS_PID=$!
+while kill -0 $SCAP_RESULTS_PID >/dev/null 2>&1; do
+        echo "OpenSCAP configuration scan process is still active..."
+        sleep 15
+done
 
 if [ $MODE -eq 1 ]; then
     wget http://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml >/dev/null 2>&1
@@ -257,7 +270,12 @@ if [ $MODE -eq 1 ]; then
     fi
 fi
 if [[ -e com.redhat.rhsa-all.xml && -e com.redhat.rhsa-all.xccdf.xml ]]; then
-        oscap xccdf eval --results $(hostname)-scap-vulnerability-report-$(date +%Y%m%d).xml --report $(hostname)-scap-vulnerability-report-$(date +%Y%m%d).html com.redhat.rhsa-all.xccdf.xml >/dev/null 2>&1
+        oscap xccdf eval --results $(hostname)-scap-vulnerability-report-$(date +%Y%m%d).xml --report $(hostname)-scap-vulnerability-report-$(date +%Y%m%d).html com.redhat.rhsa-all.xccdf.xml >/dev/null 2>&1 &
+	SCAP_VULN_PID=$!
+        while kill -0 $SCAP_VULN_PID >/dev/null 2>&1; do
+                echo "OpenSCAP vulnerability check process is still active..."
+                sleep 15
+        done
 else
         echo "Red Hat Vulnerability Content Missing - please run in Online mode!"
 fi
@@ -281,21 +299,19 @@ fi
 ######### BEGIN AIDE CHECKS ##########
 echo "Starting AIDE Process."
 if [ -f /etc/aide.conf ] && [ -f /var/lib/aide/aide.db.gz ]; then
-	CHK=1
-	while ps aux | grep "aide --check" | grep -v grep >/dev/null 2>&1; do
-		if [ $CHK -eq 1 ]; then
-			echo "Waiting for existing AIDE CHECK to finish..."
-			$((CHK++))
-		fi
-	done
-	mkdir -p AIDE
-	cd AIDE
-	echo 'Performing AIDE Check.'
-	cat /etc/aide.conf > etc-aide.conf
-	aide --check > aide-check
-	cd $WORK_DIR/results
+        mkdir -p AIDE
+        cd AIDE
+        echo 'Performing AIDE Check.'
+        cat /etc/aide.conf > etc-aide.conf
+        aide --check > aide-check &
+        AIDE_PID=$!
+        while kill -0 $AIDE_PID >/dev/null 2>&1; do
+                echo "AIDE check process is still active..."
+                sleep 15
+        done
+        cd $WORK_DIR/results
 else
-	echo 'AIDE is not installed or configured!' > aide-check
+        echo 'AIDE is not installed or configured!' > aide-check
 fi
 echo "Finished AIDE Process."
 ) &
@@ -303,9 +319,14 @@ echo "Finished AIDE Process."
 (
 ########## BEGIN FIND ROGUE ELFS ##########
 cd elfs
-echo "Starting Rogue Elfs Process."
-$BASE_DIR/../FindRogueElfs/FindRogueElfs.sh >/dev/null 2>&1
-echo "Finished Rogue Elfs Process."
+echo "Starting Rogue ELFs Process."
+$BASE_DIR/../FindRogueElfs/FindRogueElfs.sh &> $WORK_DIR/elfs/report.txt &
+ELFS_PID=$!
+while kill -0 $ELFS_PID >/dev/null 2>&1; do
+	echo "Find Rogue ELFs process is still active..."
+        sleep 15
+done
+echo "Finished Rogue ELFs Process."
 ) &
 
 wait
